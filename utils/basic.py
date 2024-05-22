@@ -3,6 +3,10 @@ from ml_logger import logger
 import numpy as np
 
 
+def to_dict(proto):
+	return {k: v for k, v in vars(proto).items() if not callable(v) and not k.startswith('__')}
+
+
 class TimedAction:
     def __init__(self, name):
         self.name = name

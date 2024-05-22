@@ -1,14 +1,10 @@
 import torch
 import torchinfo
-import math
 from maps.uncond.utils import pad_dimensions
-from audio_diffusion_pytorch import KarrasSchedule
-from diffusion_2d.samplers import heun_sampler
 import torch.nn.functional as F
 from torch.optim import Adam
 import matplotlib.pyplot as plt
 from params_proto import ParamsProto, Proto
-from diffusion_2d.loader import load_model
 from einops import reduce
 from maps.uncond.utils import TimedAction, tensor_to_image
 from maps.cond.model import CondEDM, CondModel, ControlCondModel, CondDiTiDevil, FakeCondModel
@@ -28,17 +24,12 @@ test_run = False
 
 class Args(ParamsProto):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    dataset_path = Proto(env='$DATASET_ROOT/maps/maps128.npz')
+    dataset_path = ''
     unet_control = False
     dit_control = False
     diti_devil = True
     use_ema = True
-    map_model_path = '/diffusion-comp/2024/05-14/maps/cond/sweep_train/13.49.21/1/1'
-    map_model_ckpt = 'checkpoints/model_0200.pkl'
-    # map_model_path = '/diffusion-comp/2024/05-12/maps/cond/sweep/01.40.21/1/1'
-    # map_model_ckpt = 'checkpoints/model.pkl'
-    # map_model_path = '/diffusion-comp/2024/05-06/maps/uncond/sweep_train/01.31.29/1/1/'
-    # map_model_ckpt = 'checkpoints/model_300.pkl'
+    base_model_path = ''
     image_size = 96
     seed = 42
     n_epochs = 3000
@@ -172,7 +163,7 @@ def load_base_model():
     if test_run:
         return CondEDM(FakeCondModel(), device=Args.device)
     else:
-        base_model = load_model(Args.map_model_path, Args.map_model_ckpt).to(Args.device)
+        base_model = torch.load(Args.base_model_path, map_location=Args.device)
         if isinstance(base_model, EMA):
             return base_model.ema_model
 
@@ -258,11 +249,4 @@ def main(**deps):
 
 
 if __name__ == '__main__':
-    from datetime import datetime
-    now = datetime.now()
-    year = now.strftime("%Y")
-    date = now.strftime("%m-%d")
-    time = now.strftime("%H.%M.%S")
-    path = f"/diffusion-comp/{year}/{date}/maps/cond/sweep/{time}/1/1/"
-    logger.configure(prefix=path)
     main()

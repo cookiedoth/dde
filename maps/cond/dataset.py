@@ -41,20 +41,3 @@ def merge_sat_map(dataset, indices, device):
     return torch.stack(sats, dim=0).to(device), \
            torch.stack(maps, dim=0).to(device)
 
-
-def main():
-    from matplotlib import pyplot as plt
-    dataset_root = os.environ['DATASET_ROOT']
-    dataset = SatMapDataset(f'{dataset_root}/maps/maps128.npz', 96)
-    _, ax = plt.subplots(10, 2, figsize=(20, 4))
-    for i in range(10):
-        sat, mp = dataset[i]
-        ax[i, 0].imshow(tensor_to_image(sat))
-        ax[i, 1].imshow(tensor_to_image(mp))
-    plt.tight_layout()
-    plt.show()
-
-
-if __name__ == '__main__':
-    main()
-

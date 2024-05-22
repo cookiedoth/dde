@@ -1,4 +1,3 @@
-from diffusion_2d.loader import load_model
 import torch
 from params_proto import ParamsProto, Proto
 from ml_logger import logger
@@ -10,28 +9,9 @@ from maps.uncond.model import get_kernel
 import random
 
 
-t1_path = '/diffusion-comp/2024/05-17/maps/cond/sweep_train/00.10.12/1/1'
-t1_pkl = 'checkpoints/model_0100.pkl'
-
-t2_path = '/diffusion-comp/2024/05-20/maps/cond/sweep_train/02.04.15/1/1'
-t2_pkl = 'checkpoints/model_0050.pkl'
-
-base_path = '/diffusion-comp/2024/05-14/maps/cond/sweep_train/13.49.21/1/1/'
-base_pkl = 'checkpoints/model_0200.pkl'
-
-
-t3_path = '/diffusion-comp/2024/05-21/maps/cond/sweep_train/21.35.02/1/1/'
-t4_path = '/diffusion-comp/2024/05-21/maps/cond/sweep_train/21.56.39/1/1'
-
-
-
-def get_pkl(epoch):
-    return f'checkpoints/model_{epoch:04}.pkl'
-
-
 class Args(ParamsProto):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    dataset_path = Proto(env='$DATASET_ROOT/maps/maps128.npz')
+    dataset_path = ''
     flip_cond = True
     image_size = 128
     seed = 42
@@ -45,8 +25,7 @@ class Args(ParamsProto):
     rho = 7.0
     s_churn = 20.0
 
-    model_path = t2_path
-    model_pkl = get_pkl(20)
+    model_path = ''
 
     multi_diffusion = False
     base_size = 64
@@ -67,7 +46,7 @@ def main(**deps):
     torch.manual_seed(Args.seed)
 
     with TimedAction('initialize_model'):
-        model = load_model(Args.model_path, Args.model_pkl).to(Args.device)
+        model = torch.load(Args.model_path, map_location=Args.device)
         # model = FakeCondModel()
         if Args.multi_diffusion:
             model = init_multidiff(model)
