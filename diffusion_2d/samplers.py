@@ -2,6 +2,7 @@ import torch
 from tqdm import tqdm
 
 
+# Adapted code from https://github.com/NVlabs/edm
 def heun_sampler(model, sigmas, noises, num_resamples, s_churn, device):
     sigmas = sigmas.to(device)
     x = sigmas[0] * noises
@@ -43,23 +44,6 @@ def edm_diffusion_sampler(model, sigmas, noises, step):
     for i in tqdm(range(len(sigmas) - 1)):
         sigma, sigma_next = sigmas[i], sigmas[i + 1]
         eps = model(x, torch.ones(x.shape[0], device=x.device) * sigma)
-        dt = sigma - sigma_next
-        x = step(x, sigma, dt, eps)
-    return x
-
-
-@torch.no_grad()
-def edm_langevin_sampler(model, sigmas, noises, step, lsteps):
-    x = sigmas[0] * noises
-    for i in tqdm(range(len(sigmas) - 1)):
-        sigma, sigma_next = sigmas[i], sigmas[i + 1]
-        sigma_vec = torch.ones(x.shape[0], device=x.device) * sigma
-        for _ in range(lsteps):
-            ss = 1.0 / sigma * 0.035
-            score = -model(x, sigma_vec) / sigma
-            std = torch.sqrt(2 * ss)
-            x = x + score * ss + torch.randn_like(x) * std
-        eps = model(x, sigma_vec)
         dt = sigma - sigma_next
         x = step(x, sigma, dt, eps)
     return x

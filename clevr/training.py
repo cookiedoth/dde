@@ -1,7 +1,6 @@
 import time
 
 import matplotlib.pyplot as plt
-from multi_source.main.my_utils import to_dict
 import torch
 import torch.nn.functional as F
 import torchinfo
@@ -11,11 +10,10 @@ from params_proto import ParamsProto
 from params_proto import Proto
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from diffusion_cubes.model2 import CubeUnet
 from diffusion_2d.utils import sample_image
-from diffusion_cubes.loader import Clevr2DPosDataset
-from diffusion_cubes.model import Model, UNetModel
-from single_instrument.utils import pad_dimensions
+from clevr.loader import Clevr2DPosDataset
+from clevr.model import Model, UNetModel
+from music.music_utils import pad_dimensions
 
 
 class Args(ParamsProto):
@@ -34,7 +32,7 @@ class Args(ParamsProto):
     random_flip = False
 
     class unet_kwargs(Proto):
-        dim = 128 # Channel count
+        dim = 128  # Channel count
         dim_mults = (1, 2, 4, 8, 8)
         channels = 3
         resnet_block_groups = 8
@@ -194,6 +192,7 @@ def main(**deps):
 
         logger.log_metrics_summary(key_values={"epoch": epoch})
         logger.print(f'Completed epoch:{epoch}, time = {time.asctime(time.localtime())}')
+
 
 if __name__ == '__main__':
     main()

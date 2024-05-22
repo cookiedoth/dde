@@ -1,29 +1,26 @@
-import random
-
 import cv2
 import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 import torchinfo
+from clevr.control.model import TransformerDevil
+from clevr.loader import Clevr2DPosDataset
+from clevr.model import Model
 from einops import reduce
+from ema_pytorch import EMA
 from ml_logger import logger
 from params_proto import ParamsProto
 from params_proto import Proto
+from music.music_utils import pad_dimensions
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-
 from diffusion_2d.loader import load_model
 from diffusion_2d.utils import sample_control_image
-from diffusion_cubes.control.model import RNNDevil, TransformerDevil
-from diffusion_cubes.loader import Clevr2DPosDataset
-from diffusion_cubes.model import Model
-from single_instrument.utils import pad_dimensions
-from ema_pytorch import EMA
 
 
 class Args(ParamsProto):
-    cube_model_path = "/diffusion-comp/2024/04-27/diffusion_cubes/sweep/21.36.30/lr:0.0001"
-    classifier_path = "/diffusion-comp/2023/11-23/diffusion_cubes/classifier/sweep/17.57.43/"
+    cube_model_path = "-"
+    classifier_path = "-"
     dataset_path = Proto(env='$DATASET_ROOT/clevr/clevr_pos_data_128_30000.npz')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     image_size = 64

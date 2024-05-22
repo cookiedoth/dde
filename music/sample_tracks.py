@@ -1,16 +1,16 @@
 import argparse
-from pathlib import Path
 import os
+
 import torch
 import torchaudio
 from audio_diffusion_pytorch import KarrasSchedule
-from single_instrument.model import Model
+
 from diffusion_2d.loader import load_model
 from diffusion_2d.samplers import heun_sampler
-from single_instrument.utils import patch_model
+from music.music_utils import patch_model
 
 SAMPLE_RATE = 22050
-ROOT_PATH = Path("/data/scratch/diff-comp")
+ROOT_PATH = ""
 STEMS = ['bass', 'drums', 'guitar', 'piano']
 
 
@@ -33,21 +33,6 @@ def multi_model(PATCH_SIZE, PATCH_OVERLAP, num_patches, w, model, x, t):
             out = out[:, :, PATCH_OVERLAP:]
         outs.append(out)
     return torch.cat(outs, dim=2)
-
-
-def multi_devil_model(PATCH_SIZE, PATCH_OVERLAP, num_patches, model, x, t):
-    parts = []
-    for i in range(num_patches - 1):
-        lpos = i * (PATCH_SIZE - PATCH_OVERLAP)
-        rpos = i * (PATCH_SIZE - PATCH_OVERLAP) + PATCH_SIZE * 2 - PATCH_OVERLAP
-        out = model(x[:, :, lpos:rpos], t)
-        if 0 < i < num_patches - 2:
-            parts.append(out[:, :, PATCH_SIZE - PATCH_OVERLAP:-PATCH_OVERLAP])
-        elif i == 0:
-            parts.append(out[:, :, :-PATCH_OVERLAP])
-        elif i == num_patches - 2:
-            parts.append(out[:, :, PATCH_SIZE - PATCH_OVERLAP:])
-    return torch.cat(parts, dim=2)
 
 
 def sample_concat(PATCH_SIZE, num_patches, num_channels, batch_size, model, num_timesteps, device):
@@ -81,17 +66,6 @@ def sample_rnn(PATCH_SIZE, num_patches, num_channels, batch_size, model, num_tim
                         device=device)
 
 
-def sample_multi_devil(PATCH_SIZE, PATCH_OVERLAP, num_patches, num_channels, batch_size, model, num_timesteps, device):
-    return heun_sampler(lambda x, t: multi_devil_model(PATCH_SIZE, PATCH_OVERLAP, num_patches, model, x, t),
-                        sigmas=KarrasSchedule(sigma_min=1e-4, sigma_max=20.0, rho=7)(num_timesteps,
-                                                                                     device),
-                        noises=torch.randn(batch_size, num_channels,
-                                           PATCH_SIZE * num_patches - PATCH_OVERLAP * (num_patches - 1)).to(device),
-                        s_churn=20,
-                        num_resamples=1,
-                        device=device)
-
-
 def sample_fn(PATCH_SIZE, num_channels, batch_size, model, num_timesteps, device):
     return heun_sampler(model,
                         sigmas=KarrasSchedule(sigma_min=1e-4, sigma_max=20.0, rho=7)(num_timesteps,
@@ -115,11 +89,8 @@ def main(Args):
                 os.unlink(file_path)
     device = torch.device(Args.device)
     model = load_model(Args.ckpt_path, "checkpoints/" + Args.checkpoint).to(device)
-    if Args.semyon:
-        model = Model(net=model.diffusion.net).to(Args.device)
-    else:
-        patch_model(model)
-        model.eval()
+    patch_model(model)
+    model.eval()
     for batch_start in range(0, Args.total_samples, Args.batch_size):
         generated_tracks = torch.randn((Args.batch_size, 1, patch_size * Args.num_patches), device=device) if Args.noise \
             else sample_concat(patch_size, Args.num_patches, Args.num_channels, Args.batch_size, model,
@@ -128,8 +99,6 @@ def main(Args):
                               model, Args.num_timesteps, device) if Args.multi \
             else sample_rnn(patch_size, Args.num_patches, Args.num_channels, Args.batch_size, model, Args.num_timesteps,
                             device) if Args.rnn \
-            else sample_multi_devil(patch_size, patch_overlap, Args.num_patches, Args.num_channels, Args.batch_size,
-                                    model, Args.num_timesteps, device) if Args.multi_devil \
             else sample_fn(patch_size, Args.num_channels, Args.batch_size, model, Args.num_timesteps, device)
 
         if Args.separate:
@@ -160,7 +129,7 @@ def main(Args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process save path and number of instruments.')
     parser.add_argument('ckpt_path', type=str, help='Path to the checkpoint from jaynes exp')
-    parser.add_argument('save_path', type=str, help='Directory in /data/scratch/diff-comp to save model')
+    parser.add_argument('save_path', type=str, help='Directory in - to save model')
 
     parser.add_argument('--total_samples', type=int, default=128,
                         help='Total number of samples to generate (default: 128)')
@@ -171,9 +140,6 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default="cuda:0", help='Device to run sampling on (default: "cuda:0")')
     parser.add_argument('--concat', action='store_true', help='Perform concatenation (default: False)')
     parser.add_argument('--multi', action='store_true', help='Perform multi-diffusion concat (default: False)')
-    parser.add_argument('--semyon', action='store_true', help='Use semyon model (default: False)')
-    parser.add_argument('--multi_devil', action='store_true', help='Perform multi-diffusion devil concat (default: '
-                                                                   'False)')
     parser.add_argument('--noise', action='store_true', help='Sample songs out of noise (default: False)')
     parser.add_argument('--rnn', action='store_true', help='Sample from the RNN devil model (default: False)')
     parser.add_argument('--separate', action='store_true', help='Store stems separately (default: False)')

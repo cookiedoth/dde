@@ -1,23 +1,23 @@
 import os
 
 import torch
+import torch.nn.functional as F
 import torchinfo
 from einops import reduce
+from ema_pytorch import EMA
 from ml_logger import logger
 from params_proto import ParamsProto
 from torch.utils.data import DataLoader
-from multi_source.main.data import MultiSourceDataset
+
 from diffusion_2d.loader import load_model
-from single_instrument.dataset import RNNDataset
-from single_instrument.model import Model, RNNDevil, RNNUnetDevil, UNetDevil, RNNOverlapDevil, UNetOverlapDevil, TransformerDevil
-from single_instrument.utils import TimedAction, pad_dimensions, patch_model
-import torch.nn.functional as F
-from ema_pytorch import EMA
+from music.data import MultiSourceDataset
+from music.model import Model, RNNDevil, RNNOverlapDevil, TransformerDevil
+from music.music_utils import TimedAction, pad_dimensions, patch_model
 
 
 class Args(ParamsProto):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    diff_model_path = '/diffusion-comp/2024/03-31/single_instrument/sweep/06.13.10/patch_size:262144'
+    diff_model_path = '-'
     seed = 25
     n_epochs = 30
     batch_size = 16 if torch.cuda.is_available() else 1
@@ -29,12 +29,13 @@ class Args(ParamsProto):
     max_clips = 4
     clip_length = 12
     sample_rate = 22050
-    model_type = "RNNUnetDevil"
+    model_type = "RNNDevil"
     patch_size = 262144
     n = 4
     max_train_patches = 5
     max_test_patches = 13
     use_ema = True
+
 
 def loss_fn(model, x_0):
     batch, device = x_0.shape[0], x_0.device
@@ -50,21 +51,6 @@ def loss_fn(model, x_0):
     losses = losses * model.loss_weight(sigmas)
     loss = losses.mean()
     return loss
-
-
-def collate_fn(data):
-    PATCH_SIZE = 262144
-    cnt = Args.max_clips
-    for i in range(len(data)):
-        cnt = min(cnt, data[i].shape[1] // PATCH_SIZE)
-
-    norm_data = torch.zeros((len(data), 1, cnt * PATCH_SIZE))
-    for i in range(len(data)):
-        start = torch.randint(0, data[i].shape[1] - cnt * PATCH_SIZE, (1,))
-        clips = data[i][:, start:start + cnt * PATCH_SIZE]
-        norm_data[i] = clips.reshape(1, cnt * PATCH_SIZE)
-
-    return norm_data
 
 
 def setup_logger():
@@ -87,11 +73,10 @@ def main(**deps):
         patch_model(diff_model)
         diff_model.eval()
         model = Model(net=RNNDevil(Args.patch_size, Args.n, diff_model, Args.device)) if Args.model_type == "RNNDevil" \
-            else Model(net=UNetDevil(Args.patch_size, Args.n, diff_model, Args.device)) if Args.model_type == "UNetDevil" \
-            else Model(net=RNNOverlapDevil(diff_model, Args.device, n=Args.n, patch_size=Args.patch_size, overlap_size=Args.patch_size // 4)) if Args.model_type == "RNNOverlapDevil" \
-            else Model(net=UNetOverlapDevil(diff_model, Args.device, n=Args.n, patch_size=Args.patch_size, overlap_size=Args.patch_size // 4)) if Args.model_type == "UNetOverlapDevil" \
-            else Model(net=RNNUnetDevil(Args.patch_size, Args.n, diff_model, Args.device)) if Args.model_type == "RNNUnetDevil" \
-            else Model(net=TransformerDevil(diff_model, Args.patch_size, Args.patch_size // 4 * 3, Args.device)) if Args.model_type == "TransformerDevil" \
+            else Model(net=RNNOverlapDevil(diff_model, Args.device, n=Args.n, patch_size=Args.patch_size,
+                                           overlap_size=Args.patch_size // 4)) if Args.model_type == "RNNOverlapDevil" \
+            else Model(net=TransformerDevil(diff_model, Args.patch_size, Args.patch_size // 4 * 3,
+                                            Args.device)) if Args.model_type == "TransformerDevil" \
             else None
         if model is None:
             raise ValueError('Unknown model type')
@@ -107,7 +92,7 @@ def main(**deps):
 
     with (TimedAction('load_dataset')):
         dataset_root = os.getenv('DATASET_ROOT')
-        dataset_path = os.path.join(dataset_root, 'audio/slakh2100/train' if Args.n > 1 else 'merged')
+        dataset_path = os.path.join(dataset_root, 'audio/slakh2100/train')
         dataset = MultiSourceDataset(
             sr=22050,
             channels=1,
@@ -116,15 +101,11 @@ def main(**deps):
             aug_shift=True,
             sample_length=Args.patch_size * Args.max_clips,
             audio_files_dir=dataset_path,
-            stems=['bass', 'drums', 'guitar', 'piano']) if Args.n > 1 else RNNDataset(dataset_path,
-                                                                                      min_clips=Args.min_clips,
-                                                                                      clip_length=Args.clip_length,
-                                                                                      sample_rate=Args.sample_rate)
+            stems=['bass', 'drums', 'guitar', 'piano'])
 
     logger.print("Dataset size is: " + str(len(dataset)))
 
-    data_loader = DataLoader(dataset, batch_size=Args.batch_size, shuffle=True) if Args.n > 1 else (
-        DataLoader(dataset, batch_size=Args.batch_size, shuffle=True, collate_fn=collate_fn))
+    data_loader = DataLoader(dataset, batch_size=Args.batch_size, shuffle=True)
 
     optimizer = torch.optim.Adam(
         list(model.parameters()),
@@ -138,9 +119,7 @@ def main(**deps):
         timer_steps = 0
         for x in data_loader:
             x = x.to(Args.device)
-            if Args.model_type == "UnetDevil" or Args.model_type == "UnetOverlapDevil":
-                x = x[:, :, :Args.patch_size * 4]
-            elif Args.model_type == "RNNDevil" or Args.model_type == "RNNUnetDevil":
+            if Args.model_type == "RNNDevil":
                 num_patches = torch.randint(1, 5, (1,)).item()
                 x_len = Args.patch_size * num_patches
                 x = x[:, :, :x_len]

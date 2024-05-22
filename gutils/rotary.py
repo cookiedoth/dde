@@ -1,10 +1,8 @@
-from timm.layers.pos_embed_sincos import rot
 import torch
+import torch.nn.functional as F
+from timm.layers import use_fused_attn
 from torch import nn
 from torch.jit import Final
-from timm.layers import use_fused_attn
-import torch.nn.functional as F
-from ml_logger import logger
 
 
 def get_theta(D, device):

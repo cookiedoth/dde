@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
 
-
+# Adapted the whole code from https://github.com/yilundu/reduce_reuse_recycle
 def center_crop_arr(pil_image, image_size):
     # We are not on a new enough PIL to support the `reducing_gap`
     # argument, which uses BOX downsampling at powers of two first.

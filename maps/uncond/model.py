@@ -1,14 +1,16 @@
-import torch
-import torch.nn as nn
-from maps.uncond.utils import pad_dimensions
-from audio_diffusion_pytorch import LogNormalDistribution
-from denoising_diffusion_pytorch import Unet
-from maps.uncond.dit import DiT
-from maps.uncond.diti import DiTi
-from ml_logger import logger
 import math
 
+import torch
+import torch.nn as nn
+from audio_diffusion_pytorch import LogNormalDistribution
+from denoising_diffusion_pytorch import Unet
 
+from maps.uncond.dit import DiT
+from maps.uncond.diti import DiTi
+from maps.uncond.utils import pad_dimensions
+
+
+# Adapted from https://github.com/NVlabs/edm
 class Model(nn.Module):
     def __init__(self,
                  net,
@@ -79,8 +81,8 @@ class MultiDiffusion(nn.Module):
                 w0 = self.stride[0] * i
                 h0 = self.stride[1] * j
                 outputs[:, :, w0:w0 + self.base_size[0], h0:h0 + self.base_size[1]] += \
-                        self.base_model(x_noisy[:, :, w0:w0 + self.base_size[0], h0:h0 + self.base_size[0]], sigmas) * \
-                        self.kernel
+                    self.base_model(x_noisy[:, :, w0:w0 + self.base_size[0], h0:h0 + self.base_size[0]], sigmas) * \
+                    self.kernel
                 weights[:, :, w0:w0 + self.base_size[0], h0:h0 + self.base_size[1]] += self.kernel
         return outputs / weights
 
@@ -115,18 +117,23 @@ class RNN2D(nn.Module):
     def forward(self, x_noisy, sigmas):
         weights = torch.zeros_like(x_noisy)
         outputs = torch.zeros_like(x_noisy)
-        hiddens1 = torch.zeros((x_noisy.shape[0], self.hidden_channels, self.steps[1], self.base_size[0], self.base_size[1]), device=x_noisy.device) # (B, channels, steps, W, H)
+        hiddens1 = torch.zeros(
+            (x_noisy.shape[0], self.hidden_channels, self.steps[1], self.base_size[0], self.base_size[1]),
+            device=x_noisy.device)  # (B, channels, steps, W, H)
         for i in range(self.steps[0]):
-            hidden = torch.zeros((x_noisy.shape[0], self.hidden_channels, self.base_size[0], self.base_size[1]), device=x_noisy.device)
+            hidden = torch.zeros((x_noisy.shape[0], self.hidden_channels, self.base_size[0], self.base_size[1]),
+                                 device=x_noisy.device)
             for j in range(self.steps[1]):
                 w0 = self.stride[0] * i
                 h0 = self.stride[1] * j
-                diff_output = self.base_model.unet(x_noisy[:, :, w0:w0 + self.base_size[0], h0:h0 + self.base_size[0]], sigmas)
+                diff_output = self.base_model.unet(x_noisy[:, :, w0:w0 + self.base_size[0], h0:h0 + self.base_size[0]],
+                                                   sigmas)
                 rnn_input = torch.cat((diff_output, hidden, hiddens1[:, :, j, :, :]), dim=1)
                 rnn_output = self.unet(rnn_input, sigmas)
-                outputs[:, :, w0:w0 + self.base_size[0], h0:h0 + self.base_size[1]] += rnn_output[:, :3, :, :] * self.kernel
-                hidden = rnn_output[:, 3:3+self.hidden_channels, :, :]
-                hiddens1[:, :, j, :, :] = rnn_output[:, 3+self.hidden_channels:, :, :]
+                outputs[:, :, w0:w0 + self.base_size[0], h0:h0 + self.base_size[1]] += rnn_output[:, :3, :,
+                                                                                       :] * self.kernel
+                hidden = rnn_output[:, 3:3 + self.hidden_channels, :, :]
+                hiddens1[:, :, j, :, :] = rnn_output[:, 3 + self.hidden_channels:, :, :]
                 weights[:, :, w0:w0 + self.base_size[0], h0:h0 + self.base_size[1]] += self.kernel
         return outputs / weights
 
@@ -172,7 +179,7 @@ class TransformerAlpha(nn.Module):
     def forward(self, x_noisy, sigmas):
         w_ch = self.mult_shape[0] * self.mult_shape[1] * 4
         dit_input = torch.zeros((x_noisy.shape[0], w_ch, x_noisy.shape[2], x_noisy.shape[3]),
-                                     device=x_noisy.device)
+                                device=x_noisy.device)
         ch_ptr = 0
         for i in range(self.mult_shape[0]):
             for j in range(self.mult_shape[1]):
@@ -180,8 +187,9 @@ class TransformerAlpha(nn.Module):
                 R1 = L1 + self.base_size
                 L2 = j * self.stride
                 R2 = L2 + self.base_size
-                dit_input[:, ch_ptr:ch_ptr+3, L1:R1, L2:R2] = self.base_model.unet(x_noisy[:, :, L1:R1, L2:R2], sigmas)
-                dit_input[:, ch_ptr+3, L1:R1, L2:R2] = 1.0
+                dit_input[:, ch_ptr:ch_ptr + 3, L1:R1, L2:R2] = self.base_model.unet(x_noisy[:, :, L1:R1, L2:R2],
+                                                                                     sigmas)
+                dit_input[:, ch_ptr + 3, L1:R1, L2:R2] = 1.0
                 ch_ptr += 4
         output = self.dit(dit_input, sigmas)
         return output
@@ -211,7 +219,7 @@ class TransformerDevilWithW(nn.Module):
                 R1 = L1 + self.base_size
                 L2 = j * self.stride
                 R2 = L2 + self.base_size
-                dit_w_input[:, ch_ptr:ch_ptr+3, L1:R1, L2:R2] = x_noisy[:, :, L1:R1, L2:R2]
+                dit_w_input[:, ch_ptr:ch_ptr + 3, L1:R1, L2:R2] = x_noisy[:, :, L1:R1, L2:R2]
                 ch_ptr += 3
         dit_w_output = self.dit_w(dit_w_input, sigmas)
 
@@ -223,7 +231,7 @@ class TransformerDevilWithW(nn.Module):
                 R1 = L1 + self.base_size
                 L2 = j * self.stride
                 R2 = L2 + self.base_size
-                kernel = torch.exp(dit_w_output[:, ch_ptr:ch_ptr+3, L1:R1, L2:R2])
+                kernel = torch.exp(dit_w_output[:, ch_ptr:ch_ptr + 3, L1:R1, L2:R2])
                 scores[:, :, L1:R1, L2:R2] = self.base_model.unet(x_noisy[:, :, L1:R1, L2:R2], sigmas) * kernel
                 w[:, :, L1:R1, L2:R2] += kernel
                 ch_ptr += 3
@@ -238,15 +246,15 @@ class DiTiDevil(nn.Module):
         self.base_model = base_model
         self.base_model.requires_grad_(False)
         self.diti = DiTi(
-                 base_size=base_size,
-                 patch_size=diti_kwargs.patch_size,
-                 in_channels=3,
-                 hidden_size=diti_kwargs.hidden_size,
-                 depth=diti_kwargs.depth,
-                 num_heads=diti_kwargs.num_heads,
-                 mlp_ratio=diti_kwargs.mlp_ratio,
-                 out_channels=3,
-                 stride=stride)
+            base_size=base_size,
+            patch_size=diti_kwargs.patch_size,
+            in_channels=3,
+            hidden_size=diti_kwargs.hidden_size,
+            depth=diti_kwargs.depth,
+            num_heads=diti_kwargs.num_heads,
+            mlp_ratio=diti_kwargs.mlp_ratio,
+            out_channels=3,
+            stride=stride)
         self.base_size = base_size
         self.mult_shape = mult_shape
         self.stride = stride
@@ -264,9 +272,8 @@ class DiTiDevil(nn.Module):
         N, _, C, H, W = diti_input.shape
         MH, MW = self.mult_shape
         diti_input = diti_input.reshape(
-                (N, MH, MW, C, H, W))
+            (N, MH, MW, C, H, W))
         return self.diti(diti_input, t)
-
 
 
 class FakeModel(nn.Module):

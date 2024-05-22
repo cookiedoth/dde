@@ -44,14 +44,16 @@ def pad_dimensions(A, B):
     """
     return A.view([-1] + [1] * (len(B.shape) - 1))
 
-def torchmodify(name) :
-    a=name.split('.')
-    for i,s in enumerate(a) :
-        if s.isnumeric() :
-            a[i]="_modules['"+s+"']"
+
+def torchmodify(name):
+    a = name.split('.')
+    for i, s in enumerate(a):
+        if s.isnumeric():
+            a[i] = "_modules['" + s + "']"
     return '.'.join(a)
 
+
 def patch_model(model):
-    for name, module in model.named_modules() :
-        if isinstance(module, torch.nn.GELU) :
-            exec('model.'+torchmodify(name)+'=torch.nn.GELU()')
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.GELU):
+            exec('model.' + torchmodify(name) + '=torch.nn.GELU()')

@@ -1,5 +1,10 @@
-# Adapted from https://github.com/energy-based-model/Compositional-Visual-Generation-with-Composable-Diffusion-Models-PyTorch/blob/4d2cd3a422cc19e7a188c1c1ed9cde2a392aca92/classifier/train.py
+# Adapted from https://github.com/energy-based-model/Compositional-Visual-Generation-with-Composable-Diffusion-Models
+# -PyTorch/blob/4d2cd3a422cc19e7a188c1c1ed9cde2a392aca92/classifier/train.py
 
+
+import argparse
+import copy
+import time
 
 # utility functions based off https://github.com/yilundu/improved_contrastive_divergence
 # @article{du2020improved,
@@ -9,31 +14,19 @@
 #   year={2020}
 # }
 import numpy as np
-
-import os
-import time
-import copy
-import argparse
-
 import torch
-import torch.optim as optim
 import torch.nn as nn
-from tqdm import tqdm
-import sys
-from diffusion_cubes.classifier.model import Classifier
-
-from torch.utils.data import Dataset, DataLoader
-
-from diffusion_cubes.classifier.datasets import Clevr2DPosDataset
-
-from torch.utils.tensorboard import SummaryWriter
-
-import torchvision.utils as tvu
-from params_proto import ParamsProto
-from ml_logger import logger
+import torch.optim as optim
 import torchinfo
-from params_proto import Proto
 from matplotlib import pyplot as plt
+from ml_logger import logger
+from params_proto import ParamsProto
+from params_proto import Proto
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+
+from clevr.classifier.datasets import Clevr2DPosDataset
+from clevr.classifier.model import Classifier
 from diffusion_2d.utils import unlift
 
 # seed
@@ -43,6 +36,7 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(301)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 class Args(ParamsProto):
     spec_norm = True
@@ -57,6 +51,7 @@ class Args(ParamsProto):
     unet_dim_mults = (1, 2, 4)
     checkpoint_dir = 'results'
     data_path = Proto(env='$DATASET_ROOT/clevr/clevr_pos_data_128_30000.npz')
+
 
 def display_batch(inputs, attr2, labels, logits_3d, batch_display_size, filename):
     batch_display_size = min(batch_display_size, inputs.shape[0])
@@ -73,6 +68,7 @@ def display_batch(inputs, attr2, labels, logits_3d, batch_display_size, filename
         ax[i, 2].imshow(unlift(logits_3d[i]))
     plt.tight_layout()
     logger.savefig(filename)
+
 
 def train_model(
         model, dataloaders, optimizer, start_epoch=0, num_epochs=50
@@ -131,7 +127,8 @@ def train_model(
 
                     if i % Args.batch_display_every == 0:
                         print(f'Plotting visualization for epoch {epoch}, phase {phase}, step {i}')
-                        display_batch(inputs, attr2, labels, logits_3d, Args.batch_display_size, f'figures/batch_{epoch}_{phase}_{i}.png')
+                        display_batch(inputs, attr2, labels, logits_3d, Args.batch_display_size,
+                                      f'figures/batch_{epoch}_{phase}_{i}.png')
 
                     loss = criterion(sigmoid(logits_1d), labels)
 
@@ -206,7 +203,8 @@ def main(**kwargs):
     torchinfo.summary(model)
 
     optimizer = optim.Adam(model.parameters(), lr=Args.lr, betas=(0.9, 0.999), eps=1e-8)
-    datasets = {phase: Clevr2DPosDataset(data_path=Args.data_path, resolution=Args.im_size, split=phase) for phase in ['train', 'val']}
+    datasets = {phase: Clevr2DPosDataset(data_path=Args.data_path, resolution=Args.im_size, split=phase) for phase in
+                ['train', 'val']}
 
     dataloaders = {phase: DataLoader(
         dataset=datasets[phase], shuffle=True, pin_memory=True, num_workers=4, batch_size=Args.batch_size)
@@ -214,7 +212,6 @@ def main(**kwargs):
     }
 
     train_model(model, dataloaders, optimizer, 0, Args.num_epochs)
-
 
 
 if __name__ == '__main__':

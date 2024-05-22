@@ -1,9 +1,9 @@
 import numpy as np
+import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
-from gutils.basic import tensor_to_image, torch_randint, to_tuple2
-import torch
-import os
+
+from gutils.basic import torch_randint, to_tuple2
 
 
 class SatMapDataset(Dataset):

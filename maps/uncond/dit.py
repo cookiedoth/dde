@@ -1,11 +1,14 @@
+import math
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-import math
 from timm.models.vision_transformer import PatchEmbed, Attention, Mlp
-from ml_logger import logger
-from gutils.basic import torch_stats, np_stats
 
+from gutils.basic import np_stats
+
+
+# Some parts of this code are adapted from https://github.com/facebookresearch/DiT
 
 def modulate(x, shift, scale):
     return x * (1 + scale.unsqueeze(1)) + shift.unsqueeze(1)

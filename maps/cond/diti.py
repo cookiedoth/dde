@@ -1,15 +1,13 @@
-import torch
-import torch.nn as nn
 import numpy as np
-import math
+import torch
 from timm.models.vision_transformer import PatchEmbed, Attention, Mlp
-from ml_logger import logger
-from maps.uncond.dit import get_2d_sincos_pos_embed, modulate, TimestepEmbedder, LabelEmbedder, DiTBlock, FinalLayer
 from torch import nn
-import math
+
 from gutils.rotary import RotaryAttention, get_idx_h_w
+from maps.uncond.dit import get_2d_sincos_pos_embed, modulate, TimestepEmbedder, FinalLayer
 
 
+# Adapted from https://github.com/facebookresearch/DiT
 class CondDiTBlock(nn.Module):
     def __init__(self, hidden_size, num_heads, use_rotary_attn, mlp_ratio=4.0, **block_kwargs):
         super().__init__()
@@ -17,7 +15,7 @@ class CondDiTBlock(nn.Module):
         attn_class = RotaryAttention if use_rotary_attn else Attention
         self.attn = attn_class(hidden_size, num_heads=num_heads, qkv_bias=True, **block_kwargs)
         self.norm2 = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)
-        self.norm2_c = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6) # isn't norm functional?
+        self.norm2_c = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)  # isn't norm functional?
         mlp_hidden_dim = int(hidden_size * mlp_ratio)
         approx_gelu = lambda: nn.GELU(approximate="tanh")
         self.mlp = Mlp(in_features=hidden_size, hidden_features=mlp_hidden_dim, act_layer=approx_gelu, drop=0)
@@ -30,8 +28,8 @@ class CondDiTBlock(nn.Module):
 
     def forward(self, x, c, x_c, idx_h, idx_w):
         shift_msa, scale_msa, gate_msa, \
-        shift_mlp, scale_mlp, gate_mlp, \
-        shift_mlp_c, scale_mlp_c, gate_mlp_c = self.adaLN_modulation(c).chunk(9, dim=1)
+            shift_mlp, scale_mlp, gate_mlp, \
+            shift_mlp_c, scale_mlp_c, gate_mlp_c = self.adaLN_modulation(c).chunk(9, dim=1)
         join = torch.cat((x, x_c), dim=1)
         attn_input = modulate(self.norm1(join), shift_msa, scale_msa)
         if self.use_rotary_attn:
@@ -71,11 +69,13 @@ class CondDiTi(nn.Module):
         self.add_pos_emb = add_pos_emb
 
         self.x_embedder = PatchEmbed(base_size, patch_size, in_channels, hidden_size, bias=True)
-        self.c_embedder = PatchEmbed(img_size=None, patch_size=patch_size, in_chans=in_channels, embed_dim=hidden_size, bias=True, strict_img_size=False)
+        self.c_embedder = PatchEmbed(img_size=None, patch_size=patch_size, in_chans=in_channels, embed_dim=hidden_size,
+                                     bias=True, strict_img_size=False)
         self.t_embedder = TimestepEmbedder(hidden_size)
 
         self.blocks = nn.ModuleList([
-            CondDiTBlock(hidden_size, num_heads, use_rotary_attn=use_rotary_attn, mlp_ratio=mlp_ratio) for _ in range(depth)
+            CondDiTBlock(hidden_size, num_heads, use_rotary_attn=use_rotary_attn, mlp_ratio=mlp_ratio) for _ in
+            range(depth)
         ])
         self.final_layer = FinalLayer(hidden_size, patch_size, self.out_channels)
         self.initialize_weights()
@@ -141,10 +141,10 @@ class CondDiTi(nn.Module):
 
         _, _, H_c, W_c = x_c.shape
         assert H_c == W_c
-        x_c = self.c_embedder(x_c) # (N, T_c, D)
+        x_c = self.c_embedder(x_c)  # (N, T_c, D)
         if self.add_pos_emb:
             pos_embed_c = get_2d_sincos_pos_embed(self.hidden_size, H_c // self.patch_size)
-            pos_embed_c = torch.from_numpy(pos_embed_c).float().to(x.device) # (T_c, D)
+            pos_embed_c = torch.from_numpy(pos_embed_c).float().to(x.device)  # (T_c, D)
             x_c = x_c + pos_embed_c[None, :, :]
 
         x = self.x_embedder(x.view((N * M, C, H, W)))  # (N * M, T, D)
@@ -157,7 +157,8 @@ class CondDiTi(nn.Module):
             for i in range(MH):
                 for j in range(MW):
                     embeds.append(get_2d_sincos_pos_embed(self.hidden_size, int(self.x_embedder.num_patches ** 0.5),
-                                                          shift=(i * self.base_size + pos[0], j * self.base_size + pos[1])))
+                                                          shift=(
+                                                          i * self.base_size + pos[0], j * self.base_size + pos[1])))
             pos_embed = np.stack(embeds, axis=0)
             pos_embed = torch.from_numpy(pos_embed).float().to(x.device)
             x = x + pos_embed[None, :, :, :]  # (N, M, T, D)

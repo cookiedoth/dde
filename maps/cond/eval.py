@@ -1,12 +1,14 @@
-import torch
-from params_proto import ParamsProto, Proto
-from ml_logger import logger
-from maps.cond.dataset import SatMapDataset, merge_sat_map
-from maps.uncond.utils import TimedAction, random_str, save_images, find_fid_loc, get_path
-from maps.cond.utils import sample_images_batched
-from maps.cond.model import MultiDiffusion, FakeCondModel
-from maps.uncond.model import get_kernel
 import random
+
+import torch
+from ml_logger import logger
+from params_proto import ParamsProto
+
+from maps.cond.dataset import SatMapDataset, merge_sat_map
+from maps.cond.model import MultiDiffusion
+from maps.cond.utils import sample_images_batched
+from maps.uncond.model import get_kernel
+from maps.uncond.utils import TimedAction, random_str, save_images, find_fid_loc, get_path
 
 
 class Args(ParamsProto):

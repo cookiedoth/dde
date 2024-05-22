@@ -4,7 +4,7 @@ import numpy as np
 
 
 def to_dict(proto):
-	return {k: v for k, v in vars(proto).items() if not callable(v) and not k.startswith('__')}
+    return {k: v for k, v in vars(proto).items() if not callable(v) and not k.startswith('__')}
 
 
 class TimedAction:

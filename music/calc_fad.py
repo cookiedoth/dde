@@ -1,9 +1,9 @@
 import argparse
 import os
+
 import librosa
 import soundfile as sf
 from frechet_audio_distance import FrechetAudioDistance
-import numpy as np
 
 
 def resample_and_cut_wav_files(source_dir, target_dir, target_sample_rate, max_length):
@@ -33,8 +33,8 @@ def resample_and_cut_wav_files(source_dir, target_dir, target_sample_rate, max_l
 
 
 def main(dataset_path, eval_path, max_length):
-    tmp_dataset_path = "/data/scratch/diff-comp/tmp1"
-    tmp_eval_path = "/data/scratch/diff-comp/tmp2"
+    tmp_dataset_path = "-"
+    tmp_eval_path = "-"
 
     resample_and_cut_wav_files(dataset_path, tmp_dataset_path, 16000, max_length)
     resample_and_cut_wav_files(eval_path, tmp_eval_path, 16000, max_length)

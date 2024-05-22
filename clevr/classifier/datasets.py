@@ -1,25 +1,20 @@
-# Adapted from https://github.com/energy-based-model/Compositional-Visual-Generation-with-Composable-Diffusion-Models-PyTorch/blob/3b9492b0b8fc690f3ecc63445087aed1a7c68cf2/classifier/datasets.py
+# Adapted from https://github.com/energy-based-model/Compositional-Visual-Generation-with-Composable-Diffusion-Models
+# -PyTorch/blob/3b9492b0b8fc690f3ecc63445087aed1a7c68cf2/classifier/datasets.py
 
 
-import csv
-import os
-import random
 import math
+import random
+from collections import namedtuple
+
 import numpy as np
-import torch
+import torchvision.transforms as transforms
 from PIL import Image
 from torch.utils.data import Dataset
-from collections import namedtuple
-
-from typing import Optional
-from functools import partial
-from collections import namedtuple
-from torchvision.datasets.utils import verify_str_arg
-import torchvision.transforms as transforms
 
 CSV = namedtuple("CSV", ["header", "index", "data"])
 
 
+# Adapted from https://github.com/yilundu/reduce_reuse_recycle
 def center_crop_arr(pil_image, image_size):
     # We are not on a new enough PIL to support the `reducing_gap`
     # argument, which uses BOX downsampling at powers of two first.
@@ -37,7 +32,7 @@ def center_crop_arr(pil_image, image_size):
     arr = np.array(pil_image)
     crop_y = (arr.shape[0] - image_size) // 2
     crop_x = (arr.shape[1] - image_size) // 2
-    return arr[crop_y : crop_y + image_size, crop_x : crop_x + image_size]
+    return arr[crop_y: crop_y + image_size, crop_x: crop_x + image_size]
 
 
 def random_crop_arr(pil_image, image_size, min_crop_frac=0.8, max_crop_frac=1.0):
@@ -61,8 +56,7 @@ def random_crop_arr(pil_image, image_size, min_crop_frac=0.8, max_crop_frac=1.0)
     arr = np.array(pil_image)
     crop_y = random.randrange(arr.shape[0] - image_size + 1)
     crop_x = random.randrange(arr.shape[1] - image_size + 1)
-    return arr[crop_y : crop_y + image_size, crop_x : crop_x + image_size]
-
+    return arr[crop_y: crop_y + image_size, crop_x: crop_x + image_size]
 
 
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -70,12 +64,12 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 
 
 class Clevr2DPosDataset(Dataset):
     def __init__(
-        self,
-        data_path,
-        resolution,
-        random_crop=False,
-        random_flip=False,
-        split=None
+            self,
+            data_path,
+            resolution,
+            random_crop=False,
+            random_flip=False,
+            split=None
     ):
         self.resolution = resolution
         self.random_crop = random_crop

@@ -1,10 +1,9 @@
-# Adapted from https://github.com/energy-based-model/Compositional-Visual-Generation-with-Composable-Diffusion-Models-PyTorch/blob/1e396f5fc9cdedeed5e889b0b6fd53520f380839/classifier/model.py
+# Adapted from https://github.com/energy-based-model/Compositional-Visual-Generation-with-Composable-Diffusion-Models
+# -PyTorch/blob/1e396f5fc9cdedeed5e889b0b6fd53520f380839/classifier/model.py
 
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
 from denoising_diffusion_pytorch import Unet
 
 

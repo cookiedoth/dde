@@ -7,10 +7,11 @@ import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
 
-from diffusion_2d.model import InferenceOutput, GaussianFourierProjection
-from single_instrument.utils import pad_dimensions
+from diffusion_2d.model import GaussianFourierProjection
+from music.music_utils import pad_dimensions
 
 
+# Imported code from https://github.com/yilundu/reduce_reuse_recycle
 class GroupNorm32(nn.GroupNorm):
     def __init__(self, num_groups, num_channels, swish, eps=1e-5):
         super().__init__(num_groups=num_groups, num_channels=num_channels, eps=eps)
@@ -648,6 +649,7 @@ class UNetModel(nn.Module):
         return out
 
 
+# Adapted code from https://github.com/NVlabs/edm
 class Model(nn.Module):
     def __init__(self,
                  net,

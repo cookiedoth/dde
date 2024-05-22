@@ -1,13 +1,14 @@
 import torch
 import torch.nn as nn
-from maps.uncond.utils import pad_dimensions
 from audio_diffusion_pytorch import LogNormalDistribution
-from gutils.basic import to_tuple2, torch_randint
-from maps.uncond.model import step_cnt
+
+from gutils.basic import to_tuple2
 from maps.cond.diti import CondDiTi
-from ml_logger import logger
+from maps.uncond.model import step_cnt
+from maps.uncond.utils import pad_dimensions
 
 
+# Adapted from https://github.com/NVlabs/edm
 class CondEDM(nn.Module):
     def __init__(self,
                  net,
@@ -99,12 +100,12 @@ class MultiDiffusion(nn.Module):
                 h0 = self.stride[0] * i
                 w0 = self.stride[1] * j
                 H, W = self.base_size
-                outputs[:, :, h0:h0+H, w0:w0+W] += \
-                        self.base_model(x_noisy[:, :, h0:h0+H, w0:w0+W],
-                                        sigmas,
-                                        x_c[:, :, h0:h0+H, w0:w0+W]) * \
-                        self.kernel
-                weights[:, :, h0:h0+H, w0:w0+W] += self.kernel
+                outputs[:, :, h0:h0 + H, w0:w0 + W] += \
+                    self.base_model(x_noisy[:, :, h0:h0 + H, w0:w0 + W],
+                                    sigmas,
+                                    x_c[:, :, h0:h0 + H, w0:w0 + W]) * \
+                    self.kernel
+                weights[:, :, h0:h0 + H, w0:w0 + W] += self.kernel
         return outputs / weights
 
 
@@ -114,17 +115,17 @@ class CondDiTiDevil(nn.Module):
         self.base_model = base_model
         self.base_model.requires_grad_(False)
         self.diti = CondDiTi(
-                 base_size=base_size,
-                 patch_size=diti_kwargs.patch_size,
-                 in_channels=3,
-                 hidden_size=diti_kwargs.hidden_size,
-                 depth=diti_kwargs.depth,
-                 num_heads=diti_kwargs.num_heads,
-                 mlp_ratio=diti_kwargs.mlp_ratio,
-                 out_channels=3,
-                 stride=stride,
-                 add_pos_emb=diti_kwargs.add_pos_emb,
-                 use_rotary_attn=diti_kwargs.use_rotary_attn)
+            base_size=base_size,
+            patch_size=diti_kwargs.patch_size,
+            in_channels=3,
+            hidden_size=diti_kwargs.hidden_size,
+            depth=diti_kwargs.depth,
+            num_heads=diti_kwargs.num_heads,
+            mlp_ratio=diti_kwargs.mlp_ratio,
+            out_channels=3,
+            stride=stride,
+            add_pos_emb=diti_kwargs.add_pos_emb,
+            use_rotary_attn=diti_kwargs.use_rotary_attn)
         self.base_size = base_size
         self.max_mult_shape = max_mult_shape
         self.stride = stride
@@ -143,7 +144,7 @@ class CondDiTiDevil(nn.Module):
         diti_input = torch.stack(scores, dim=1)
         N, _, C, H, W = diti_input.shape
         diti_input = diti_input.reshape(
-                (N, MH, MW, C, H, W))
+            (N, MH, MW, C, H, W))
         pos = (0, 0)
         # if self.max_mult_shape is not None:
         #    pos = (torch_randint(0, self.max_mult_shape[0] - MH + 1) * self.stride,

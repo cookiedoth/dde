@@ -3,14 +3,14 @@ import os
 import torch
 import torch.nn.functional as F
 import torchinfo
-from einops import rearrange, reduce
+from einops import reduce
 from ml_logger import logger
 from params_proto import ParamsProto
 from torch.utils.data import DataLoader
-from multi_source.main.data import MultiSourceDataset
-from single_instrument.dataset import InstrumentDataset
-from single_instrument.model import Model, UNet1d
-from single_instrument.utils import TimedAction, pad_dimensions
+
+from music.data import MultiSourceDataset
+from music.model import Model, UNet1d
+from music.music_utils import TimedAction, pad_dimensions
 
 
 class Args(ParamsProto):

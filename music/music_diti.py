@@ -4,13 +4,15 @@ import torch.nn as nn
 from timm.models.vision_transformer import PatchEmbed, Attention, Mlp
 
 from maps.uncond.dit import modulate, TimestepEmbedder, get_2d_sincos_pos_embed_from_grid
-from gutils.rotary import RotaryAttention, get_idx_h_w
+from utils.rotary import RotaryAttention, get_idx_h_w
 
 
+# Some of the code imported from https://github.com/facebookresearch/DiT
 class DiTBlock(nn.Module):
     """
     A DiT block with adaptive layer norm zero (adaLN-Zero) conditioning.
     """
+
     def __init__(self, hidden_size, num_heads, use_rotary_attn, mlp_ratio=4.0, **block_kwargs):
         super().__init__()
         self.norm1 = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)
@@ -127,7 +129,7 @@ class DiTi(nn.Module):
         self.t_embedder = TimestepEmbedder(hidden_size)
 
         self.blocks = nn.ModuleList([
-            DiTBlock(hidden_size, num_heads,  use_rotary_attn=use_rotary_attn, mlp_ratio=mlp_ratio) for _ in range(depth)
+            DiTBlock(hidden_size, num_heads, use_rotary_attn=use_rotary_attn, mlp_ratio=mlp_ratio) for _ in range(depth)
         ])
         self.final_layer = FinalLayer(hidden_size, patch_size, self.out_channels)
         self.initialize_weights()
