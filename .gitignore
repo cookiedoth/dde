@@ -1,0 +1,12 @@
+.idea
+.vscode
+.DS_Store
+
+__pycache__
+.egg-info
+.secret.yml
+
+diffusion_2d/datasets
+sweep.jsonl
+models/
+samples/
