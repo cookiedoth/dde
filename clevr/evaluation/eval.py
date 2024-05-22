@@ -1,6 +1,6 @@
 import torch
 import time
-from diffusion_2d.utils import sample_image, sample_image_base, sample_control_image
+from diffusion_utils.utils import sample_image, sample_image_base, sample_control_image
 from ml_logger import logger
 from matplotlib import pyplot as plt
 

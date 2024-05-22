@@ -14,8 +14,8 @@ from params_proto import Proto
 from music.music_utils import pad_dimensions
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from diffusion_2d.loader import load_model
-from diffusion_2d.utils import sample_control_image
+from diffusion_utils.loader import load_model
+from diffusion_utils.utils import sample_control_image
 
 
 class Args(ParamsProto):

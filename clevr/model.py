@@ -7,7 +7,7 @@ import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
 
-from diffusion_2d.model import GaussianFourierProjection
+from diffusion_utils.model import GaussianFourierProjection
 from music.music_utils import pad_dimensions
 
 

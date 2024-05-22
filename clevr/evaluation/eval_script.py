@@ -4,7 +4,7 @@ from params_proto import ParamsProto
 
 from clevr.control.model import ScoreSum
 from clevr.evaluation.eval import evaluate_single_label, evaluate_control
-from diffusion_2d.loader import load_model
+from diffusion_utils.loader import load_model
 
 
 class Args(ParamsProto):

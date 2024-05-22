@@ -2,7 +2,7 @@ import shutil
 from ml_logger import logger
 import torch
 from audio_diffusion_pytorch import KarrasSchedule
-from diffusion_2d.samplers import heun_sampler
+from diffusion_utils.samplers import heun_sampler
 import random
 import string
 import os

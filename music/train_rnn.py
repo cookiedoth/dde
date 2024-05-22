@@ -9,7 +9,7 @@ from ml_logger import logger
 from params_proto import ParamsProto
 from torch.utils.data import DataLoader
 
-from diffusion_2d.loader import load_model
+from diffusion_utils.loader import load_model
 from music.data import MultiSourceDataset
 from music.model import Model, RNNDevil, RNNOverlapDevil, TransformerDevil
 from music.music_utils import TimedAction, pad_dimensions, patch_model

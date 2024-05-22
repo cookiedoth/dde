@@ -2,7 +2,7 @@ import torch
 from audio_diffusion_pytorch import KarrasSchedule
 from ml_logger import logger
 
-from diffusion_2d.samplers import edm_ode_step, heun_sampler, edm_diffusion_sampler, edm_sde_step
+from diffusion_utils.samplers import edm_ode_step, heun_sampler, edm_diffusion_sampler, edm_sde_step
 
 
 def unlift(tensor):

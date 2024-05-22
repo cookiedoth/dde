@@ -5,8 +5,8 @@ import torch
 import torchaudio
 from audio_diffusion_pytorch import KarrasSchedule
 
-from diffusion_2d.loader import load_model
-from diffusion_2d.samplers import heun_sampler
+from diffusion_utils.loader import load_model
+from diffusion_utils.samplers import heun_sampler
 from music.music_utils import patch_model
 
 SAMPLE_RATE = 22050

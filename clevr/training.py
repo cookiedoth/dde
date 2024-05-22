@@ -10,7 +10,7 @@ from params_proto import ParamsProto
 from params_proto import Proto
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from diffusion_2d.utils import sample_image
+from diffusion_utils.utils import sample_image
 from clevr.loader import Clevr2DPosDataset
 from clevr.model import Model, UNetModel
 from music.music_utils import pad_dimensions

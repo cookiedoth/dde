@@ -27,7 +27,7 @@ from tqdm import tqdm
 
 from clevr.classifier.datasets import Clevr2DPosDataset
 from clevr.classifier.model import Classifier
-from diffusion_2d.utils import unlift
+from diffusion_utils.utils import unlift
 
 # seed
 np.random.seed(301)
